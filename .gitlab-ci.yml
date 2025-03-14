@@ -1,0 +1,122 @@
+image: dockerhub-docker-remote.artifact.cloud.socrate.vsct.fr/golang:1.24
+
+variables:
+  FF_USE_FASTZIP: "true"
+  IMAGE_PATH: it4container/kubernetes
+  IMAGE_NAME: ouicloud-controller
+  PLATFORMS: linux/amd64,linux/arm64
+
+stages:
+  - publish
+  - deploy
+
+.getsecrets:
+  id_tokens:
+    VAULT_ID_TOKEN_JWT:
+      aud: https://vault.socrate.vsct.fr
+  secrets:
+    CI_PASSWORD:   
+      vault: ci/it4container/password@it4container
+      file : false
+    CI_USER:   
+      vault: ci/it4container/login@it4container
+      file : false
+
+.go-cache:
+  variables:
+    GOCACHE: $CI_PROJECT_DIR/.cache/go-build
+    GOPATH: $CI_PROJECT_DIR/.go
+  cache:
+    - key: go-$CI_COMMIT_REF_SLUG
+      fallback_keys:
+        - go-$CI_DEFAULT_BRANCH
+      paths:
+        - .cache/go-build
+        - .go
+      when: always
+  resource_group: go-$CI_COMMIT_REF_SLUG
+
+.publish:
+  extends:
+    - .go-cache
+    - .getsecrets
+  stage: publish
+  tags: ["avengers-prod-spot-l"]
+  variables:
+    CGO_ENABLED: 1
+    GOFLAGS: "-trimpath"
+  before_script:
+    - export PATH="${PATH}:${GOPATH}/bin"
+    - |
+      ko_version=$(grep 'go install' scripts/install-ko.sh | cut -d@ -f2)
+      if ! command -v ko &> /dev/null || [ "$(ko version)" != "${ko_version}" ]; then
+        go install github.com/google/ko@${ko_version}
+        go clean -cache -modcache
+      fi
+    - echo "${CI_PASSWORD}" | ko login --password-stdin "${REGISTRY_URL}" -u "${CI_USER}"
+  script:
+    - |
+      if [ "${CI_COMMIT_BRANCH}" = "master" ]; then
+        version="master"
+      elif [ -n "${CI_COMMIT_TAG}" ]; then
+        version="${CI_COMMIT_TAG#v}"
+      else
+        version="devel-${CI_COMMIT_REF_SLUG}"
+      fi
+    - |
+      make build.push/multiarch \
+        VERSION="${version}" \
+        IMG_PLATFORM="${PLATFORMS}" \
+        REGISTRY=${REGISTRY_URL}/it4container/kubernetes-sigs/external-dns
+  rules:
+    - &rule-tag
+      if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/'
+    - &rule-master
+      if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "master"'
+    - &rule-merge_request
+      if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME !~ /^renovate\//'
+      changes:
+        - "**/*.go"
+        - go.mod
+        - go.sum
+        - Makefile
+        - .gitlab-ci.yml
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+publish:dev:
+  extends: .publish
+  variables:
+    REGISTRY_URL: ${DOCKER_REGISTRY_DEV_URL}
+  rules:
+    - *rule-master
+    - *rule-merge_request
+
+publish:prod:
+  extends: .publish
+  variables:
+    REGISTRY_URL: ${DOCKER_REGISTRY_URL}
+  rules:
+    - *rule-tag
+
+.deploy:master:
+  extends: .getsecrets 
+  tags: ["avengers-prod-spot-xs"]
+  stage: deploy
+  image: it4container-docker-prod.artifact.cloud.socrate.vsct.fr/it4container/kubectl-runner:3-slim
+  script:
+    - k8s-login.sh -a "${ACCOUNT}" -z "${REGION}" -c "${CLUSTER}" -u "${CI_USER}" -p "${CI_PASSWORD}" -r "ADFS-IT4C_ADMIN" -R "cf-k8s-admin-role"
+    - kubectl rollout restart deployment -n "kube-mgmt" "ouicloud-controller" "ouicloud-controller-webhook"
+  rules:
+    - *rule-master
+  dependencies: []
+
+deploy:master:ouicloud-container-dev-paris:
+  extends: .deploy:master
+  variables:
+    ACCOUNT: ouicloud-container-dev
+    REGION: eu-west-3
+    CLUSTER: ouicloud-container-dev-paris

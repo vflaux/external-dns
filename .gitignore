@@ -55,6 +55,10 @@ profile.cov
 # Helm charts
 !/charts/external-dns/
 
+# gitlab-ci
+.cache/
+.go/
+
 docs/LICENSE.md
 docs/code-of-conduct.md
 docs/CONTRIBUTING.md
