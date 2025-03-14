@@ -64,10 +64,16 @@ stages:
         version="devel-${CI_COMMIT_REF_SLUG}"
       fi
     - |
-      make build.push/multiarch \
-        VERSION="${version}" \
-        IMG_PLATFORM="${PLATFORMS}" \
-        REGISTRY=${REGISTRY_URL}/it4container/kubernetes-sigs/external-dns
+      KO_DOCKER_REPO=${REGISTRY_URL}/it4container/kubernetes-sigs/external-dns \
+      ko build \
+        --bare \
+        --push=true \
+        --sbom=none \
+        --platform="${PLATFORMS}" \
+        --tags "${version}" \
+        --image-label org.opencontainers.image.source="${CI_PROJECT_URL}" \
+        --image-label org.opencontainers.image.revision="$(shell git rev-parse HEAD)"" \
+        .
   rules:
     - &rule-tag
       if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/'
