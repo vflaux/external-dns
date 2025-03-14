@@ -41,7 +41,7 @@ stages:
     - .go-cache
     - .getsecrets
   stage: publish
-  tags: ["avengers-prod-spot-l"]
+  tags: ["avengers-prod-spot-xl"]
   variables:
     CGO_ENABLED: 1
     GOFLAGS: "-trimpath"
