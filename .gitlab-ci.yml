@@ -111,7 +111,7 @@ publish:prod:
 
 .deploy:master:
   extends: .getsecrets 
-  tags: ["avengers-prod-spot-xs"]
+  tags: ["avengers-prod-spot-s"]
   stage: deploy
   image: it4container-docker-prod.artifact.cloud.socrate.vsct.fr/it4container/kubectl-runner:3-slim
   script:
