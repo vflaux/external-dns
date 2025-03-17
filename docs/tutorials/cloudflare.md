@@ -120,7 +120,7 @@ spec:
     spec:
       containers:
         - name: external-dns
-          image: registry.k8s.io/external-dns/external-dns:v0.15.1
+          image: registry.k8s.io/external-dns/external-dns:v0.16.1
           args:
             - --source=service # ingress is also possible
             - --domain-filter=example.com # (optional) limit to only example.com domains; change to match the zone created above.
@@ -196,7 +196,7 @@ spec:
       serviceAccountName: external-dns
       containers:
         - name: external-dns
-          image: registry.k8s.io/external-dns/external-dns:v0.15.1
+          image: registry.k8s.io/external-dns/external-dns:v0.16.1
           args:
             - --source=service # ingress is also possible
             - --domain-filter=example.com # (optional) limit to only example.com domains; change to match the zone created above.
@@ -319,6 +319,8 @@ This feature is disabled by default and supports the `--cloudflare-custom-hostna
 The custom hostname DNS must resolve to the Cloudflare DNS record (`external-dns.alpha.kubernetes.io/hostname`) for automatic certificate validation via the HTTP method. It's important to note that the TXT method does not allow automatic validation and is not supported.
 
 Requires [Cloudflare for SaaS](https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare-for-saas/) product and "SSL and Certificates" API permission.
+
+Due to a limitation within the cloudflare-go v0 API, the custom hostname page size is fixed at 50.
 
 ## Using CRD source to manage DNS records in Cloudflare
 
