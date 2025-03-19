@@ -2,8 +2,6 @@ image: dockerhub-docker-remote.artifact.cloud.socrate.vsct.fr/golang:1.24
 
 variables:
   FF_USE_FASTZIP: "true"
-  IMAGE_PATH: it4container/kubernetes
-  IMAGE_NAME: ouicloud-controller
   PLATFORMS: linux/amd64,linux/arm64
 
 stages:
