@@ -48,8 +48,7 @@ stages:
     - ko_version=$(grep 'go install' scripts/install-ko.sh | cut -d@ -f2);
     - |
       if ! command -v ko &> /dev/null || [ "$(ko version)" != "${ko_version}" ]; then
-        go install github.com/google/ko@${ko_version}
-        go clean -cache -modcache
+        GOCACHE=$CI_PROJECT_DIR/.cache/go-build-tools go install github.com/google/ko@${ko_version}
       fi
     - echo "${CI_PASSWORD}" | ko login --password-stdin "${REGISTRY_URL}" -u "${CI_USER}"
   script:
