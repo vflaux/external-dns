@@ -70,7 +70,7 @@ stages:
         --platform="${PLATFORMS}" \
         --tags "${version}" \
         --image-label org.opencontainers.image.source="${CI_PROJECT_URL}" \
-        --image-label org.opencontainers.image.revision="$(shell git rev-parse HEAD)" \
+        --image-label org.opencontainers.image.revision="$(git rev-parse HEAD)" \
         .
   rules:
     - &rule-tag
