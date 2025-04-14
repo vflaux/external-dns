@@ -91,12 +91,6 @@ var recordTypeCustomHostnameSupported = map[string]bool{
 	"CNAME": true,
 }
 
-var recordTypeRegionalHostnameSupported = map[string]bool{
-	"A":     true,
-	"AAAA":  true,
-	"CNAME": true,
-}
-
 // cloudFlareDNS is the subset of the CloudFlare API that we actually use.  Add methods as required. Signatures must match exactly.
 type cloudFlareDNS interface {
 	UserDetails(ctx context.Context) (cloudflare.User, error)
@@ -108,9 +102,7 @@ type cloudFlareDNS interface {
 	CreateDNSRecord(ctx context.Context, rc *cloudflare.ResourceContainer, rp cloudflare.CreateDNSRecordParams) (cloudflare.DNSRecord, error)
 	DeleteDNSRecord(ctx context.Context, rc *cloudflare.ResourceContainer, recordID string) error
 	UpdateDNSRecord(ctx context.Context, rc *cloudflare.ResourceContainer, rp cloudflare.UpdateDNSRecordParams) error
-	CreateDataLocalizationRegionalHostname(ctx context.Context, rc *cloudflare.ResourceContainer, rp cloudflare.CreateDataLocalizationRegionalHostnameParams) error
 	UpdateDataLocalizationRegionalHostname(ctx context.Context, rc *cloudflare.ResourceContainer, rp cloudflare.UpdateDataLocalizationRegionalHostnameParams) error
-	DeleteDataLocalizationRegionalHostname(ctx context.Context, rc *cloudflare.ResourceContainer, hostname string) error
 	CustomHostnames(ctx context.Context, zoneID string, page int, filter cloudflare.CustomHostname) ([]cloudflare.CustomHostname, cloudflare.ResultInfo, error)
 	DeleteCustomHostname(ctx context.Context, zoneID string, customHostnameID string) error
 	CreateCustomHostname(ctx context.Context, zoneID string, ch cloudflare.CustomHostname) (*cloudflare.CustomHostnameResponse, error)
@@ -145,18 +137,9 @@ func (z zoneService) UpdateDNSRecord(ctx context.Context, rc *cloudflare.Resourc
 	return err
 }
 
-func (z zoneService) CreateDataLocalizationRegionalHostname(ctx context.Context, rc *cloudflare.ResourceContainer, rp cloudflare.CreateDataLocalizationRegionalHostnameParams) error {
-	_, err := z.service.CreateDataLocalizationRegionalHostname(ctx, rc, rp)
-	return err
-}
-
 func (z zoneService) UpdateDataLocalizationRegionalHostname(ctx context.Context, rc *cloudflare.ResourceContainer, rp cloudflare.UpdateDataLocalizationRegionalHostnameParams) error {
 	_, err := z.service.UpdateDataLocalizationRegionalHostname(ctx, rc, rp)
 	return err
-}
-
-func (z zoneService) DeleteDataLocalizationRegionalHostname(ctx context.Context, rc *cloudflare.ResourceContainer, hostname string) error {
-	return z.service.DeleteDataLocalizationRegionalHostname(ctx, rc, hostname)
 }
 
 func (z zoneService) DeleteDNSRecord(ctx context.Context, rc *cloudflare.ResourceContainer, recordID string) error {
@@ -219,14 +202,6 @@ func updateDNSRecordParam(cfc cloudFlareChange) cloudflare.UpdateDNSRecordParams
 		Proxied: cfc.ResourceRecord.Proxied,
 		Type:    cfc.ResourceRecord.Type,
 		Content: cfc.ResourceRecord.Content,
-	}
-}
-
-// createDataLocalizationRegionalHostnameParams is a function that returns the appropriate RegionalHostname Param based on the cloudFlareChange passed in
-func createDataLocalizationRegionalHostnameParams(cfc cloudFlareChange) cloudflare.CreateDataLocalizationRegionalHostnameParams {
-	return cloudflare.CreateDataLocalizationRegionalHostnameParams{
-		Hostname:  cfc.RegionalHostname.Hostname,
-		RegionKey: cfc.RegionalHostname.RegionKey,
 	}
 }
 
@@ -515,15 +490,6 @@ func (p *CloudFlareProvider) submitChanges(ctx context.Context, changes []*cloud
 				if !p.submitCustomHostnameChanges(ctx, zoneID, change, chs, logFields) {
 					failedChange = true
 				}
-				if change.RegionalHostname.Hostname != "" {
-					regionalHostnameParam := updateDataLocalizationRegionalHostnameParams(*change)
-					log.WithFields(logFields).Debugf("Updating regional hostname %s", change.RegionalHostname.Hostname)
-					regionalHostnameErr := p.Client.UpdateDataLocalizationRegionalHostname(ctx, resourceContainer, regionalHostnameParam)
-					if regionalHostnameErr != nil {
-						failedChange = true
-						log.WithFields(logFields).Errorf("failed to update regional hostname: %v", regionalHostnameErr)
-					}
-				}
 				recordID := p.getRecordID(records, change.ResourceRecord)
 				if recordID == "" {
 					log.WithFields(logFields).Errorf("failed to find previous record: %v", change.ResourceRecord)
@@ -535,6 +501,13 @@ func (p *CloudFlareProvider) submitChanges(ctx context.Context, changes []*cloud
 				if err != nil {
 					failedChange = true
 					log.WithFields(logFields).Errorf("failed to update record: %v", err)
+				}
+				if regionalHostnameParam := updateDataLocalizationRegionalHostnameParams(*change); regionalHostnameParam.RegionKey != "" {
+					regionalHostnameErr := p.Client.UpdateDataLocalizationRegionalHostname(ctx, resourceContainer, regionalHostnameParam)
+					if regionalHostnameErr != nil {
+						failedChange = true
+						log.WithFields(logFields).Errorf("failed to update record when editing region: %v", regionalHostnameErr)
+					}
 				}
 			} else if change.Action == cloudFlareDelete {
 				recordID := p.getRecordID(records, change.ResourceRecord)
@@ -649,14 +622,6 @@ func (p *CloudFlareProvider) newCloudFlareChange(action string, endpoint *endpoi
 			SSL:                getCustomHostnamesSSLOptions(p.CustomHostnamesConfig),
 		}
 	}
-	regionalHostname := cloudflare.RegionalHostname{}
-	if getRegionKey(endpoint, p.RegionKey) != "" {
-		regionalHostname = cloudflare.RegionalHostname{
-			Hostname:  endpoint.DNSName,
-			RegionKey: p.RegionKey,
-			CreatedOn: &dt,
-		}
-	}
 	return &cloudFlareChange{
 		Action: action,
 		ResourceRecord: cloudflare.DNSRecord{
@@ -671,7 +636,11 @@ func (p *CloudFlareProvider) newCloudFlareChange(action string, endpoint *endpoi
 				"region": p.RegionKey,
 			},
 		},
-		RegionalHostname:   regionalHostname,
+		RegionalHostname: cloudflare.RegionalHostname{
+			Hostname:  endpoint.DNSName,
+			RegionKey: p.RegionKey,
+			CreatedOn: &dt,
+		},
 		CustomHostnamePrev: customHostnamePrev,
 		CustomHostname:     newCustomHostname,
 	}
@@ -777,19 +746,6 @@ func shouldBeProxied(endpoint *endpoint.Endpoint, proxiedByDefault bool) bool {
 		proxied = false
 	}
 	return proxied
-}
-
-func getRegionKey(endpoint *endpoint.Endpoint, defaultRegionKey string) string {
-	if !recordTypeRegionalHostnameSupported[endpoint.RecordType] {
-		return ""
-	}
-
-	for _, v := range endpoint.ProviderSpecific {
-		if v.Name == source.CloudflareRegionKey {
-			return v.Value
-		}
-	}
-	return defaultRegionKey
 }
 
 func getEndpointCustomHostname(endpoint *endpoint.Endpoint) string {
