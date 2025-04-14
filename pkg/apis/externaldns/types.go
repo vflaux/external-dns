@@ -203,6 +203,7 @@ type Config struct {
 	PiholeServer                                  string
 	PiholePassword                                string `secure:"yes"`
 	PiholeTLSInsecureSkipVerify                   bool
+	PiholeApiVersion                              string
 	PluralCluster                                 string
 	PluralProvider                                string
 	WebhookProviderURL                            string
@@ -212,6 +213,7 @@ type Config struct {
 	TraefikDisableLegacy                          bool
 	TraefikDisableNew                             bool
 	NAT64Networks                                 []string
+	ExcludeUnschedulable                          bool
 }
 
 var defaultConfig = &Config{
@@ -365,6 +367,7 @@ var defaultConfig = &Config{
 	PiholeServer:                                  "",
 	PiholePassword:                                "",
 	PiholeTLSInsecureSkipVerify:                   false,
+	PiholeApiVersion:                              "5",
 	PluralCluster:                                 "",
 	PluralProvider:                                "",
 	WebhookProviderURL:                            "http://localhost:8888",
@@ -374,6 +377,7 @@ var defaultConfig = &Config{
 	TraefikDisableLegacy:                          false,
 	TraefikDisableNew:                             false,
 	NAT64Networks:                                 []string{},
+	ExcludeUnschedulable:                          true,
 }
 
 // NewConfig returns new Config object
@@ -481,6 +485,7 @@ func App(cfg *Config) *kingpin.Application {
 	app.Flag("traefik-disable-legacy", "Disable listeners on Resources under the traefik.containo.us API Group").Default(strconv.FormatBool(defaultConfig.TraefikDisableLegacy)).BoolVar(&cfg.TraefikDisableLegacy)
 	app.Flag("traefik-disable-new", "Disable listeners on Resources under the traefik.io API Group").Default(strconv.FormatBool(defaultConfig.TraefikDisableNew)).BoolVar(&cfg.TraefikDisableNew)
 	app.Flag("nat64-networks", "Adding an A record for each AAAA record in NAT64-enabled networks; specify multiple times for multiple possible nets (optional)").StringsVar(&cfg.NAT64Networks)
+	app.Flag("exclude-unschedulable", "Exclude nodes that are considered unschedulable (default: true)").Default(strconv.FormatBool(defaultConfig.ExcludeUnschedulable)).BoolVar(&cfg.ExcludeUnschedulable)
 	app.Flag("expose-internal-ipv6", "When using the node source, expose internal IPv6 addresses (optional). Default is true.").BoolVar(&cfg.ExposeInternalIPV6)
 
 	// Flags related to providers
@@ -600,6 +605,7 @@ func App(cfg *Config) *kingpin.Application {
 	app.Flag("pihole-server", "When using the Pihole provider, the base URL of the Pihole web server (required when --provider=pihole)").Default(defaultConfig.PiholeServer).StringVar(&cfg.PiholeServer)
 	app.Flag("pihole-password", "When using the Pihole provider, the password to the server if it is protected").Default(defaultConfig.PiholePassword).StringVar(&cfg.PiholePassword)
 	app.Flag("pihole-tls-skip-verify", "When using the Pihole provider, disable verification of any TLS certificates").BoolVar(&cfg.PiholeTLSInsecureSkipVerify)
+	app.Flag("pihole-api-version", "When using the Pihole provider, specify the pihole API version (default: 5, options: 5, 6)").Default(defaultConfig.PiholeApiVersion).StringVar(&cfg.PiholeApiVersion)
 
 	// Flags related to the Plural provider
 	app.Flag("plural-cluster", "When using the plural provider, specify the cluster name you're running with").Default(defaultConfig.PluralCluster).StringVar(&cfg.PluralCluster)

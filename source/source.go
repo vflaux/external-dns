@@ -72,6 +72,7 @@ const (
 	// The annotation used for determining if traffic will go through Cloudflare
 	CloudflareProxiedKey        = "external-dns.alpha.kubernetes.io/cloudflare-proxied"
 	CloudflareCustomHostnameKey = "external-dns.alpha.kubernetes.io/cloudflare-custom-hostname"
+	CloudflareRegionKey         = "external-dns.alpha.kubernetes.io/cloudflare-region-key"
 
 	SetIdentifierKey = "external-dns.alpha.kubernetes.io/set-identifier"
 )
@@ -179,7 +180,7 @@ func getInternalHostnamesFromAnnotations(annotations map[string]string) []string
 }
 
 func splitHostnameAnnotation(annotation string) []string {
-	return strings.Split(strings.Replace(annotation, " ", "", -1), ",")
+	return strings.Split(strings.ReplaceAll(annotation, " ", ""), ",")
 }
 
 func getAliasFromAnnotations(annotations map[string]string) bool {
@@ -199,6 +200,12 @@ func getProviderSpecificAnnotations(annotations map[string]string) (endpoint.Pro
 	if v, exists := annotations[CloudflareCustomHostnameKey]; exists {
 		providerSpecificAnnotations = append(providerSpecificAnnotations, endpoint.ProviderSpecificProperty{
 			Name:  CloudflareCustomHostnameKey,
+			Value: v,
+		})
+	}
+	if v, exists := annotations[CloudflareRegionKey]; exists {
+		providerSpecificAnnotations = append(providerSpecificAnnotations, endpoint.ProviderSpecificProperty{
+			Name:  CloudflareRegionKey,
 			Value: v,
 		})
 	}
@@ -251,7 +258,7 @@ func getTargetsFromTargetAnnotation(annotations map[string]string) endpoint.Targ
 	targetAnnotation, exists := annotations[targetAnnotationKey]
 	if exists && targetAnnotation != "" {
 		// splits the hostname annotation and removes the trailing periods
-		targetsList := strings.Split(strings.Replace(targetAnnotation, " ", "", -1), ",")
+		targetsList := strings.Split(strings.ReplaceAll(targetAnnotation, " ", ""), ",")
 		for _, targetHostname := range targetsList {
 			targetHostname = strings.TrimSuffix(targetHostname, ".")
 			targets = append(targets, targetHostname)
