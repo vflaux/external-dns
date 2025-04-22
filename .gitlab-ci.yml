@@ -113,7 +113,7 @@ publish:prod:
   image: it4container-docker-prod.artifact.cloud.socrate.vsct.fr/it4container/kubectl-runner:3-slim
   script:
     - k8s-login.sh -a "${ACCOUNT}" -z "${REGION}" -c "${CLUSTER}" -u "${CI_USER}" -p "${CI_PASSWORD}" -r "ADFS-IT4C_ADMIN" -R "cf-k8s-admin-role"
-    - kubectl rollout restart deployment -n "kube-mgmt" "ouicloud-controller" "ouicloud-controller-webhook"
+    - kubectl rollout restart deployment -n "kube-system" -l "app.kubernetes.io/name=external-dns"
   rules:
     - *rule-master
   dependencies: []
