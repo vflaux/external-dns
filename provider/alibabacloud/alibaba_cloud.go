@@ -38,7 +38,7 @@ import (
 )
 
 const (
-	defaultAlibabaCloudRecordTTL            = 600
+	defaultTTL                              = 600
 	defaultAlibabaCloudPrivateZoneRecordTTL = 60
 	defaultAlibabaCloudPageSize             = 50
 	nullHostAlibabaCloud                    = "@"
@@ -85,13 +85,13 @@ type AlibabaCloudProvider struct {
 }
 
 type alibabaCloudConfig struct {
-	RegionID        string    `json:"regionId" yaml:"regionId"`
-	AccessKeyID     string    `json:"accessKeyId" yaml:"accessKeyId"`
+	RegionID        string    `json:"regionId"        yaml:"regionId"`
+	AccessKeyID     string    `json:"accessKeyId"     yaml:"accessKeyId"`
 	AccessKeySecret string    `json:"accessKeySecret" yaml:"accessKeySecret"`
-	VPCID           string    `json:"vpcId" yaml:"vpcId"`
-	RoleName        string    `json:"-" yaml:"-"` // For ECS RAM role only
-	StsToken        string    `json:"-" yaml:"-"`
-	ExpireTime      time.Time `json:"-" yaml:"-"`
+	VPCID           string    `json:"vpcId"           yaml:"vpcId"`
+	RoleName        string    `json:"-"               yaml:"-"` // For ECS RAM role only
+	StsToken        string    `json:"-"               yaml:"-"`
+	ExpireTime      time.Time `json:"-"               yaml:"-"`
 }
 
 // NewAlibabaCloudProvider creates a new Alibaba Cloud provider.
@@ -606,12 +606,12 @@ func (p *AlibabaCloudProvider) deleteRecords(recordMap map[string][]alidns.Recor
 
 func (p *AlibabaCloudProvider) equals(record alidns.Record, endpoint *endpoint.Endpoint) bool {
 	ttl1 := record.TTL
-	if ttl1 == defaultAlibabaCloudRecordTTL {
+	if ttl1 == defaultTTL {
 		ttl1 = 0
 	}
 
 	ttl2 := int64(endpoint.RecordTTL)
-	if ttl2 == defaultAlibabaCloudRecordTTL {
+	if ttl2 == defaultTTL {
 		ttl2 = 0
 	}
 
