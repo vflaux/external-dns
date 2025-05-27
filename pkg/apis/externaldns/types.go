@@ -213,6 +213,7 @@ type Config struct {
 	TraefikDisableNew                             bool
 	NAT64Networks                                 []string
 	ExcludeUnschedulable                          bool
+	UseEndpointSlices                             bool
 }
 
 var defaultConfig = &Config{
@@ -375,6 +376,7 @@ var defaultConfig = &Config{
 	WebhookProviderWriteTimeout:  10 * time.Second,
 	WebhookServer:                false,
 	ZoneIDFilter:                 []string{},
+	UseEndpointSlices:            false,
 }
 
 // NewConfig returns new Config object
@@ -485,6 +487,7 @@ func App(cfg *Config) *kingpin.Application {
 	app.Flag("target-net-filter", "Limit possible targets by a net filter; specify multiple times for multiple possible nets (optional)").StringsVar(&cfg.TargetNetFilter)
 	app.Flag("traefik-disable-legacy", "Disable listeners on Resources under the traefik.containo.us API Group").Default(strconv.FormatBool(defaultConfig.TraefikDisableLegacy)).BoolVar(&cfg.TraefikDisableLegacy)
 	app.Flag("traefik-disable-new", "Disable listeners on Resources under the traefik.io API Group").Default(strconv.FormatBool(defaultConfig.TraefikDisableNew)).BoolVar(&cfg.TraefikDisableNew)
+	app.Flag("use-endpointslices", "Use endpointslices instead of endpoints for services").Default(strconv.FormatBool(defaultConfig.UseEndpointSlices)).BoolVar(&cfg.UseEndpointSlices)
 
 	// Flags related to providers
 	providers := []string{"akamai", "alibabacloud", "aws", "aws-sd", "azure", "azure-dns", "azure-private-dns", "civo", "cloudflare", "coredns", "digitalocean", "dnsimple", "exoscale", "gandi", "godaddy", "google", "inmemory", "linode", "ns1", "oci", "ovh", "pdns", "pihole", "plural", "rfc2136", "scaleway", "skydns", "transip", "webhook"}

@@ -786,6 +786,9 @@
         "string",
         "null"
       ]
+    },
+    "useEndpointSlices": {
+      "type": "boolean"
     }
   },
   "type": "object"

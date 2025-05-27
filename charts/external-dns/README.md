@@ -183,6 +183,7 @@ If `namespaced` is set to `true`, please ensure that `sources` my only contains 
 | txtOwnerId | string | `nil` | Specify an identifier for this instance of _ExternalDNS_ when using a registry other than `noop`. |
 | txtPrefix | string | `nil` | Specify a prefix for the domain names of TXT records created for the `txt` registry. Mutually exclusive with `txtSuffix`. |
 | txtSuffix | string | `nil` | Specify a suffix for the domain names of TXT records created for the `txt` registry. Mutually exclusive with `txtPrefix`. |
+| useEndpointSlices | bool | `false` | Set this to `true` to use the `EndpointSlices` API to discover service endpoints. |
 
 ----------------------------------------------
 

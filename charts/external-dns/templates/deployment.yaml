@@ -123,6 +123,9 @@ spec:
             {{- range .Values.managedRecordTypes }}
             - --managed-record-types={{ . }}
             {{- end }}
+            {{- if .Values.useEndpointSlices }}
+            - --use-endpointslices
+            {{- end }}
             - --provider={{ $providerName }}
             {{- if kindIs "map" .Values.extraArgs }}
             {{- range $key, $value := .Values.extraArgs }}
