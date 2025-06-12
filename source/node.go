@@ -62,7 +62,7 @@ func NewNodeSource(ctx context.Context, kubeClient kubernetes.Interface, annotat
 	// Add default resource event handler to properly initialize informer.
 	nodeInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
+			AddFunc: func(obj any) {
 				log.Debug("node added")
 			},
 		},

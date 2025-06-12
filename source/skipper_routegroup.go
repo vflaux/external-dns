@@ -317,8 +317,7 @@ func (sc *routeGroupSource) endpointsFromTemplate(rg *routeGroup) ([]*endpoint.E
 
 	var endpoints []*endpoint.Endpoint
 	// splits the FQDN template and removes the trailing periods
-	hostnameList := strings.Split(strings.ReplaceAll(hostnames, " ", ""), ",")
-	for _, hostname := range hostnameList {
+	for hostname := range strings.SplitSeq(strings.ReplaceAll(hostnames, " ", ""), ",") {
 		hostname = strings.TrimSuffix(hostname, ".")
 		endpoints = append(endpoints, endpointsForHostname(hostname, targets, ttl, providerSpecific, setIdentifier, resource)...)
 	}

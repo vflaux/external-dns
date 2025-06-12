@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/external-dns/endpoint"
 	"sigs.k8s.io/external-dns/internal/testutils"
 	"sigs.k8s.io/external-dns/source/annotations"
+	"slices"
 )
 
 func mustGetLabelSelector(s string) labels.Selector {
@@ -134,7 +135,7 @@ func newTestEndpoint(dnsName, recordType string, targets ...string) *endpoint.En
 func newTestEndpointWithTTL(dnsName, recordType string, ttl int64, targets ...string) *endpoint.Endpoint {
 	return &endpoint.Endpoint{
 		DNSName:    dnsName,
-		Targets:    append([]string(nil), targets...), // clone targets
+		Targets:    slices.Clone(targets), // clone targets
 		RecordType: recordType,
 		RecordTTL:  endpoint.TTL(ttl),
 	}

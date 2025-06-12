@@ -29,6 +29,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 
+	"maps"
 	"sigs.k8s.io/external-dns/endpoint"
 	"sigs.k8s.io/external-dns/source/annotations"
 )
@@ -49,8 +50,8 @@ var (
 // Basic redefinition of "Proxy" CRD : https://github.com/solo-io/gloo/blob/v1.4.6/projects/gloo/pkg/api/v1/proxy.pb.go
 type proxy struct {
 	metav1.TypeMeta `json:",inline"`
-	Metadata        metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec            proxySpec         `json:"spec,omitempty"`
+	Metadata        metav1.ObjectMeta `json:"metadata"`
+	Spec            proxySpec         `json:"spec"`
 }
 
 type proxySpec struct {
@@ -58,7 +59,7 @@ type proxySpec struct {
 }
 
 type proxySpecListener struct {
-	HTTPListener proxySpecHTTPListener `json:"httpListener,omitempty"`
+	HTTPListener proxySpecHTTPListener `json:"httpListener"`
 }
 
 type proxySpecHTTPListener struct {
@@ -67,8 +68,8 @@ type proxySpecHTTPListener struct {
 
 type proxyVirtualHost struct {
 	Domains        []string                       `json:"domains,omitempty"`
-	Metadata       proxyVirtualHostMetadata       `json:"metadata,omitempty"`
-	MetadataStatic proxyVirtualHostMetadataStatic `json:"metadataStatic,omitempty"`
+	Metadata       proxyVirtualHostMetadata       `json:"metadata"`
+	MetadataStatic proxyVirtualHostMetadataStatic `json:"metadataStatic"`
 }
 
 type proxyVirtualHostMetadata struct {
@@ -87,7 +88,7 @@ type proxyVirtualHostMetadataSource struct {
 
 type proxyVirtualHostMetadataStaticSource struct {
 	ResourceKind string                                    `json:"resourceKind,omitempty"`
-	ResourceRef  proxyVirtualHostMetadataSourceResourceRef `json:"resourceRef,omitempty"`
+	ResourceRef  proxyVirtualHostMetadataSourceResourceRef `json:"resourceRef"`
 }
 
 type proxyVirtualHostMetadataSourceResourceRef struct {
@@ -185,9 +186,7 @@ func (gs *glooSource) annotationsFromProxySource(ctx context.Context, virtualHos
 			if err != nil {
 				return nil, err
 			}
-			for key, value := range source.GetAnnotations() {
-				ants[key] = value
-			}
+			maps.Copy(ants, source.GetAnnotations())
 		}
 	}
 	for _, src := range virtualHost.MetadataStatic.Source {
@@ -197,9 +196,7 @@ func (gs *glooSource) annotationsFromProxySource(ctx context.Context, virtualHos
 			if err != nil {
 				return nil, err
 			}
-			for key, value := range source.GetAnnotations() {
-				ants[key] = value
-			}
+			maps.Copy(ants, source.GetAnnotations())
 		}
 	}
 	return ants, nil

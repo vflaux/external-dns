@@ -86,7 +86,7 @@ func NewIstioGatewaySource(
 	// Add default resource event handlers to properly initialize informer.
 	serviceInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
+			AddFunc: func(obj any) {
 				log.Debug("service added")
 			},
 		},
@@ -94,7 +94,7 @@ func NewIstioGatewaySource(
 
 	gatewayInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
+			AddFunc: func(obj any) {
 				log.Debug("gateway added")
 			},
 		},

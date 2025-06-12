@@ -96,7 +96,7 @@ func NewIngressSource(ctx context.Context, kubeClient kubernetes.Interface, name
 	// Add default resource event handlers to properly initialize informer.
 	ingressInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
+			AddFunc: func(obj any) {
 			},
 		},
 	)

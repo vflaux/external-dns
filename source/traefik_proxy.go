@@ -109,17 +109,17 @@ func NewTraefikSource(ctx context.Context, dynamicKubeClient dynamic.Interface, 
 		ingressRouteUdpInformer = informerFactory.ForResource(ingressrouteUDPGVR)
 		ingressRouteInformer.Informer().AddEventHandler(
 			cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {},
+				AddFunc: func(obj any) {},
 			},
 		)
 		ingressRouteTcpInformer.Informer().AddEventHandler(
 			cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {},
+				AddFunc: func(obj any) {},
 			},
 		)
 		ingressRouteUdpInformer.Informer().AddEventHandler(
 			cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {},
+				AddFunc: func(obj any) {},
 			},
 		)
 	}
@@ -129,17 +129,17 @@ func NewTraefikSource(ctx context.Context, dynamicKubeClient dynamic.Interface, 
 		oldIngressRouteUdpInformer = informerFactory.ForResource(oldIngressrouteUDPGVR)
 		oldIngressRouteInformer.Informer().AddEventHandler(
 			cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {},
+				AddFunc: func(obj any) {},
 			},
 		)
 		oldIngressRouteTcpInformer.Informer().AddEventHandler(
 			cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {},
+				AddFunc: func(obj any) {},
 			},
 		)
 		oldIngressRouteUdpInformer.Informer().AddEventHandler(
 			cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {},
+				AddFunc: func(obj any) {},
 			},
 		)
 	}
@@ -926,7 +926,7 @@ func filterResourcesByAnnotations[T any](resources []*T, annotationFilter string
 	return filteredList, nil
 }
 
-func getAnnotations(obj interface{}) map[string]string {
+func getAnnotations(obj any) map[string]string {
 	switch o := obj.(type) {
 	case *IngressRouteUDP:
 		return o.Annotations
@@ -939,7 +939,7 @@ func getAnnotations(obj interface{}) map[string]string {
 	}
 }
 
-func getObjectFullName(obj interface{}) string {
+func getObjectFullName(obj any) string {
 	switch o := obj.(type) {
 	case *IngressRouteUDP:
 		return fmt.Sprintf("%s/%s", o.Namespace, o.Name)

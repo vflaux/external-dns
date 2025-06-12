@@ -3882,7 +3882,7 @@ func BenchmarkServiceEndpoints(b *testing.B) {
 	)
 	require.NoError(b, err)
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := client.Endpoints(context.Background())
 		require.NoError(b, err)
 	}
@@ -4059,7 +4059,7 @@ func createTestServicesByType(namespace string, typeCounts map[v1.ServiceType]in
 	var services []*v1.Service
 	idx := 0
 	for svcType, count := range typeCounts {
-		for i := 0; i < count; i++ {
+		for range count {
 			svc := &v1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      fmt.Sprintf("svc-%s-%d", svcType, idx),

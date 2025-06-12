@@ -148,13 +148,13 @@ func (cs *crdSource) AddEventHandler(_ context.Context, handler func()) {
 		informer := *cs.informer
 		_, _ = informer.AddEventHandler(
 			cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {
+				AddFunc: func(obj any) {
 					handler()
 				},
-				UpdateFunc: func(old interface{}, newI interface{}) {
+				UpdateFunc: func(old any, newI any) {
 					handler()
 				},
-				DeleteFunc: func(obj interface{}) {
+				DeleteFunc: func(obj any) {
 					handler()
 				},
 			},

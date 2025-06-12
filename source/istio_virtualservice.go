@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/external-dns/source/annotations"
 	"sigs.k8s.io/external-dns/source/fqdn"
 	"sigs.k8s.io/external-dns/source/informers"
+	"slices"
 )
 
 // IstioMeshGateway is the built in gateway for all sidecars
@@ -89,7 +90,7 @@ func NewIstioVirtualServiceSource(
 	// Add default resource event handlers to properly initialize informer.
 	serviceInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
+			AddFunc: func(obj any) {
 				log.Debug("service added")
 			},
 		},
@@ -97,7 +98,7 @@ func NewIstioVirtualServiceSource(
 
 	virtualServiceInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
+			AddFunc: func(obj any) {
 				log.Debug("virtual service added")
 			},
 		},
@@ -105,7 +106,7 @@ func NewIstioVirtualServiceSource(
 
 	gatewayInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
+			AddFunc: func(obj any) {
 				log.Debug("gateway added")
 			},
 		},
@@ -278,10 +279,8 @@ func (sc *virtualServiceSource) filterByAnnotations(virtualservices []*networkin
 
 // append a target to the list of targets unless it's already in the list
 func appendUnique(targets []string, target string) []string {
-	for _, element := range targets {
-		if element == target {
-			return targets
-		}
+	if slices.Contains(targets, target) {
+		return targets
 	}
 	return append(targets, target)
 }

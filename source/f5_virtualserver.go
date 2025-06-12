@@ -71,7 +71,7 @@ func NewF5VirtualServerSource(
 
 	virtualServerInformer.Informer().AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {
+			AddFunc: func(obj any) {
 			},
 		},
 	)
