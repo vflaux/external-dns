@@ -292,8 +292,8 @@ func NewCloudFlareProvider(
 	)
 	if os.Getenv("CF_API_TOKEN") != "" {
 		token := os.Getenv("CF_API_TOKEN")
-		if strings.HasPrefix(token, "file:") {
-			tokenBytes, err := os.ReadFile(strings.TrimPrefix(token, "file:"))
+		if path, ok := strings.CutPrefix(token, "file:"); ok {
+			tokenBytes, err := os.ReadFile(path)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read CF_API_TOKEN from file: %w", err)
 			}
