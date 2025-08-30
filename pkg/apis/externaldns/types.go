@@ -41,6 +41,13 @@ type Config struct {
 	APIServerURL                                  string
 	KubeConfig                                    string
 	RequestTimeout                                time.Duration
+	LeaderElection                                bool
+	LeaderElectionIdentity                        string
+	LeaderElectionNamespace                       string
+	LeaderElectionLockName                        string
+	LeaderElectionLeaseDuration                   time.Duration
+	LeaderElectionRenewDeadline                   time.Duration
+	LeaderElectionRetryPeriod                     time.Duration
 	DefaultTargets                                []string
 	GlooNamespaces                                []string
 	SkipperRouteGroupVersion                      string
@@ -301,6 +308,13 @@ var defaultConfig = &Config{
 	Interval:                     time.Minute,
 	KubeConfig:                   "",
 	LabelFilter:                  labels.Everything().String(),
+	LeaderElection:               false,
+	LeaderElectionIdentity:       "",
+	LeaderElectionNamespace:      "",
+	LeaderElectionLockName:       "external-dns",
+	LeaderElectionLeaseDuration:  15 * time.Second,
+	LeaderElectionRenewDeadline:  10 * time.Second,
+	LeaderElectionRetryPeriod:    2 * time.Second,
 	LogFormat:                    "text",
 	LogLevel:                     logrus.InfoLevel.String(),
 	ManagedDNSRecordTypes:        []string{endpoint.RecordTypeA, endpoint.RecordTypeAAAA, endpoint.RecordTypeCNAME},
@@ -458,6 +472,15 @@ func App(cfg *Config) *kingpin.Application {
 	app.Flag("request-timeout", "Request timeout when calling Kubernetes APIs. 0s means no timeout").Default(defaultConfig.RequestTimeout.String()).DurationVar(&cfg.RequestTimeout)
 	app.Flag("resolve-service-load-balancer-hostname", "Resolve the hostname of LoadBalancer-type Service object to IP addresses in order to create DNS A/AAAA records instead of CNAMEs").BoolVar(&cfg.ResolveServiceLoadBalancerHostname)
 	app.Flag("listen-endpoint-events", "Trigger a reconcile on changes to EndpointSlices, for Service source (default: false)").BoolVar(&cfg.ListenEndpointEvents)
+
+	// Flags related to leader election
+	app.Flag("leader-election", "Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.").Default(strconv.FormatBool(defaultConfig.LeaderElection)).BoolVar(&cfg.LeaderElection)
+	app.Flag("leader-election-identity", "A unique identity for this controller manager, e.g. hostname (default: auto-detect)").Default(defaultConfig.LeaderElectionIdentity).StringVar(&cfg.LeaderElectionIdentity)
+	app.Flag("leader-election-namespace", "The namespace in which the leader election resource will be created (default: auto-detect)").Default(defaultConfig.LeaderElectionNamespace).StringVar(&cfg.LeaderElectionNamespace)
+	app.Flag("leader-election-lock-name", "The name of the leader election resource (default: external-dns-leader-election)").Default(defaultConfig.LeaderElectionLockName).StringVar(&cfg.LeaderElectionLockName)
+	app.Flag("leader-election-lease-duration", "The duration that non-leader candidates will wait after observing a leadership renewal before acquiring leadership of a leader election (default: 15s)").Default(defaultConfig.LeaderElectionLeaseDuration.String()).DurationVar(&cfg.LeaderElectionLeaseDuration)
+	app.Flag("leader-election-renew-deadline", "The interval between attempts by the acting master to renew a leadership slot before it stops leading (default: 10s)").Default(defaultConfig.LeaderElectionRenewDeadline.String()).DurationVar(&cfg.LeaderElectionRenewDeadline)
+	app.Flag("leader-election-retry-period", "The duration the clients should wait between attempting acquisition and renewal of a leadership (default: 2s)").Default(defaultConfig.LeaderElectionRetryPeriod.String()).DurationVar(&cfg.LeaderElectionRetryPeriod)
 
 	// Flags related to cloud foundry
 	app.Flag("cf-api-endpoint", "The fully-qualified domain name of the cloud foundry instance you are targeting").Default(defaultConfig.CFAPIEndpoint).StringVar(&cfg.CFAPIEndpoint)

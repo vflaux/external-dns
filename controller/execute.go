@@ -31,6 +31,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/external-dns/endpoint"
@@ -102,11 +103,6 @@ func Execute() {
 	go serveMetrics(cfg.MetricsAddress)
 	go handleSigterm(cancel)
 
-	endpointsSource, err := buildSource(ctx, cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	domainFilter := createDomainFilter(cfg)
 
 	prvdr, err := buildProvider(ctx, cfg, domainFilter)
@@ -117,6 +113,47 @@ func Execute() {
 	if cfg.WebhookServer {
 		webhookapi.StartHTTPApi(prvdr, nil, cfg.WebhookProviderReadTimeout, cfg.WebhookProviderWriteTimeout, "127.0.0.1:8888")
 		os.Exit(0)
+	}
+
+	cliGen := newSingletonClientGenerator(cfg)
+
+	if !cfg.LeaderElection {
+		startController(ctx, cfg, cliGen, prvdr, domainFilter)
+		return
+	}
+
+	startLeaderElection(ctx, cfg, cliGen, leaderelection.LeaderCallbacks{
+		OnStartedLeading: func(c context.Context) {
+			log.Info("leadership acquired, starting controller")
+			startController(c, cfg, cliGen, prvdr, domainFilter)
+		},
+		OnStoppedLeading: func() {
+			log.Info("leadership lost, exiting")
+			cancel()
+		},
+		OnNewLeader: func(currentId string) {
+			log.Infof("new leader elected: %s", currentId)
+		},
+	})
+}
+
+func newSingletonClientGenerator(cfg *externaldns.Config) *source.SingletonClientGenerator {
+	return &source.SingletonClientGenerator{
+		KubeConfig:   cfg.KubeConfig,
+		APIServerURL: cfg.APIServerURL,
+		RequestTimeout: func() time.Duration {
+			if cfg.UpdateEvents {
+				return 0
+			}
+			return cfg.RequestTimeout
+		}(),
+	}
+}
+
+func startController(ctx context.Context, cfg *externaldns.Config, cliGen source.ClientGenerator, prvdr provider.Provider, domainFilter *endpoint.DomainFilter) {
+	endpointsSource, err := buildSource(ctx, cfg, cliGen)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	ctrl, err := buildController(ctx, cfg, endpointsSource, prvdr, domainFilter)
@@ -430,18 +467,9 @@ func selectRegistry(cfg *externaldns.Config, p provider.Provider) (registry.Regi
 // buildSource creates and configures the source(s) for endpoint discovery based on the provided configuration.
 // It initializes the source configuration, generates the required sources, and combines them into a single,
 // deduplicated source. Returns the combined source or an error if source creation fails.
-func buildSource(ctx context.Context, cfg *externaldns.Config) (source.Source, error) {
+func buildSource(ctx context.Context, cfg *externaldns.Config, cliGen source.ClientGenerator) (source.Source, error) {
 	sourceCfg := source.NewSourceConfig(cfg)
-	sources, err := source.ByNames(ctx, &source.SingletonClientGenerator{
-		KubeConfig:   cfg.KubeConfig,
-		APIServerURL: cfg.APIServerURL,
-		RequestTimeout: func() time.Duration {
-			if cfg.UpdateEvents {
-				return 0
-			}
-			return cfg.RequestTimeout
-		}(),
-	}, cfg.Sources, sourceCfg)
+	sources, err := source.ByNames(ctx, cliGen, cfg.Sources, sourceCfg)
 	if err != nil {
 		return nil, err
 	}

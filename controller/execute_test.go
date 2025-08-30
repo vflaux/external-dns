@@ -463,7 +463,8 @@ func TestBuildSource(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			src, err := buildSource(t.Context(), tt.cfg)
+			cliGen := newSingletonClientGenerator(tt.cfg)
+			src, err := buildSource(t.Context(), tt.cfg, cliGen)
 
 			if tt.expectedError {
 				assert.Error(t, err)
@@ -514,8 +515,10 @@ func TestBuildSourceWithWrappers(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := buildSource(t.Context(), tt.cfg)
+			cliGen := newSingletonClientGenerator(tt.cfg)
+			src, err := buildSource(t.Context(), tt.cfg, cliGen)
 			require.NoError(t, err)
+			require.NotNil(t, src)
 			tt.asserts(tt.cfg)
 		})
 	}
