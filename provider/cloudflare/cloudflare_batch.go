@@ -70,18 +70,23 @@ func (z zoneService) BatchDNSRecords(ctx context.Context, params dns.RecordBatch
 
 // getUpdateDNSRecordParam returns the RecordUpdateParams for an individual update.
 func getUpdateDNSRecordParam(zoneID string, cfc cloudFlareChange) dns.RecordUpdateParams {
+	body := dns.RecordUpdateParamsBody{
+		Name:     cloudflare.F(cfc.ResourceRecord.Name),
+		TTL:      cloudflare.F(cfc.ResourceRecord.TTL),
+		Proxied:  cloudflare.F(cfc.ResourceRecord.Proxied),
+		Type:     cloudflare.F(dns.RecordUpdateParamsBodyType(cfc.ResourceRecord.Type)),
+		Content:  cloudflare.F(cfc.ResourceRecord.Content),
+		Priority: cloudflare.F(cfc.ResourceRecord.Priority),
+	}
+	if cfc.ResourceRecord.Comment != "" {
+		body.Comment = cloudflare.F(cfc.ResourceRecord.Comment)
+	}
+	if cfc.ResourceRecord.Tags != nil {
+		body.Tags = cloudflare.F(cfc.ResourceRecord.Tags)
+	}
 	return dns.RecordUpdateParams{
 		ZoneID: cloudflare.F(zoneID),
-		Body: dns.RecordUpdateParamsBody{
-			Name:     cloudflare.F(cfc.ResourceRecord.Name),
-			TTL:      cloudflare.F(cfc.ResourceRecord.TTL),
-			Proxied:  cloudflare.F(cfc.ResourceRecord.Proxied),
-			Type:     cloudflare.F(dns.RecordUpdateParamsBodyType(cfc.ResourceRecord.Type)),
-			Content:  cloudflare.F(cfc.ResourceRecord.Content),
-			Priority: cloudflare.F(cfc.ResourceRecord.Priority),
-			Comment:  cloudflare.F(cfc.ResourceRecord.Comment),
-			Tags:     cloudflare.F(cfc.ResourceRecord.Tags),
-		},
+		Body:   body,
 	}
 }
 
@@ -158,16 +163,21 @@ func tagsFromResponse(tags any) []dns.RecordTagsParam {
 
 // buildBatchPostParam constructs a RecordBatchParamsPost for creating a DNS record in a batch.
 func buildBatchPostParam(r dns.RecordResponse) dns.RecordBatchParamsPost {
-	return dns.RecordBatchParamsPost{
+	body := dns.RecordBatchParamsPost{
 		Name:     cloudflare.F(r.Name),
 		TTL:      cloudflare.F(r.TTL),
 		Type:     cloudflare.F(dns.RecordBatchParamsPostsType(r.Type)),
 		Content:  cloudflare.F(r.Content),
 		Proxied:  cloudflare.F(r.Proxied),
 		Priority: cloudflare.F(r.Priority),
-		Comment:  cloudflare.F(r.Comment),
-		Tags:     cloudflare.F[any](tagsFromResponse(r.Tags)),
 	}
+	if r.Comment != "" {
+		body.Comment = cloudflare.F(r.Comment)
+	}
+	if r.Tags != nil {
+		body.Tags = cloudflare.F[any](tagsFromResponse(r.Tags))
+	}
+	return body
 }
 
 // buildBatchPutParam constructs a BatchPutUnionParam for updating a DNS record in a batch.
@@ -178,83 +188,113 @@ func buildBatchPutParam(id string, r dns.RecordResponse) (dns.BatchPutUnionParam
 	comment := r.Comment
 	switch r.Type {
 	case dns.RecordResponseTypeA:
+		param := dns.ARecordParam{
+			Name:    cloudflare.F(r.Name),
+			TTL:     cloudflare.F(r.TTL),
+			Type:    cloudflare.F(dns.ARecordTypeA),
+			Content: cloudflare.F(r.Content),
+			Proxied: cloudflare.F(r.Proxied),
+		}
+		if comment != "" {
+			param.Comment = cloudflare.F(comment)
+		}
+		if tags != nil {
+			param.Tags = cloudflare.F(tags)
+		}
 		return dns.BatchPutARecordParam{
-			ID: cloudflare.F(id),
-			ARecordParam: dns.ARecordParam{
-				Name:    cloudflare.F(r.Name),
-				TTL:     cloudflare.F(r.TTL),
-				Type:    cloudflare.F(dns.ARecordTypeA),
-				Content: cloudflare.F(r.Content),
-				Proxied: cloudflare.F(r.Proxied),
-				Comment: cloudflare.F(comment),
-				Tags:    cloudflare.F(tags),
-			},
+			ID:           cloudflare.F(id),
+			ARecordParam: param,
 		}, true
 	case dns.RecordResponseTypeAAAA:
+		param := dns.AAAARecordParam{
+			Name:    cloudflare.F(r.Name),
+			TTL:     cloudflare.F(r.TTL),
+			Type:    cloudflare.F(dns.AAAARecordTypeAAAA),
+			Content: cloudflare.F(r.Content),
+			Proxied: cloudflare.F(r.Proxied),
+		}
+		if comment != "" {
+			param.Comment = cloudflare.F(comment)
+		}
+		if tags != nil {
+			param.Tags = cloudflare.F(tags)
+		}
 		return dns.BatchPutAAAARecordParam{
-			ID: cloudflare.F(id),
-			AAAARecordParam: dns.AAAARecordParam{
-				Name:    cloudflare.F(r.Name),
-				TTL:     cloudflare.F(r.TTL),
-				Type:    cloudflare.F(dns.AAAARecordTypeAAAA),
-				Content: cloudflare.F(r.Content),
-				Proxied: cloudflare.F(r.Proxied),
-				Comment: cloudflare.F(comment),
-				Tags:    cloudflare.F(tags),
-			},
+			ID:              cloudflare.F(id),
+			AAAARecordParam: param,
 		}, true
 	case dns.RecordResponseTypeCNAME:
+		param := dns.CNAMERecordParam{
+			Name:    cloudflare.F(r.Name),
+			TTL:     cloudflare.F(r.TTL),
+			Type:    cloudflare.F(dns.CNAMERecordTypeCNAME),
+			Content: cloudflare.F(r.Content),
+			Proxied: cloudflare.F(r.Proxied),
+		}
+		if comment != "" {
+			param.Comment = cloudflare.F(comment)
+		}
+		if tags != nil {
+			param.Tags = cloudflare.F(tags)
+		}
 		return dns.BatchPutCNAMERecordParam{
-			ID: cloudflare.F(id),
-			CNAMERecordParam: dns.CNAMERecordParam{
-				Name:    cloudflare.F(r.Name),
-				TTL:     cloudflare.F(r.TTL),
-				Type:    cloudflare.F(dns.CNAMERecordTypeCNAME),
-				Content: cloudflare.F(r.Content),
-				Proxied: cloudflare.F(r.Proxied),
-				Comment: cloudflare.F(comment),
-				Tags:    cloudflare.F(tags),
-			},
+			ID:               cloudflare.F(id),
+			CNAMERecordParam: param,
 		}, true
 	case dns.RecordResponseTypeTXT:
+		param := dns.TXTRecordParam{
+			Name:    cloudflare.F(r.Name),
+			TTL:     cloudflare.F(r.TTL),
+			Type:    cloudflare.F(dns.TXTRecordTypeTXT),
+			Content: cloudflare.F(r.Content),
+			Proxied: cloudflare.F(r.Proxied),
+		}
+		if comment != "" {
+			param.Comment = cloudflare.F(comment)
+		}
+		if tags != nil {
+			param.Tags = cloudflare.F(tags)
+		}
 		return dns.BatchPutTXTRecordParam{
-			ID: cloudflare.F(id),
-			TXTRecordParam: dns.TXTRecordParam{
-				Name:    cloudflare.F(r.Name),
-				TTL:     cloudflare.F(r.TTL),
-				Type:    cloudflare.F(dns.TXTRecordTypeTXT),
-				Content: cloudflare.F(r.Content),
-				Proxied: cloudflare.F(r.Proxied),
-				Comment: cloudflare.F(comment),
-				Tags:    cloudflare.F(tags),
-			},
+			ID:             cloudflare.F(id),
+			TXTRecordParam: param,
 		}, true
 	case dns.RecordResponseTypeMX:
+		param := dns.MXRecordParam{
+			Name:     cloudflare.F(r.Name),
+			TTL:      cloudflare.F(r.TTL),
+			Type:     cloudflare.F(dns.MXRecordTypeMX),
+			Content:  cloudflare.F(r.Content),
+			Proxied:  cloudflare.F(r.Proxied),
+			Priority: cloudflare.F(r.Priority),
+		}
+		if comment != "" {
+			param.Comment = cloudflare.F(comment)
+		}
+		if tags != nil {
+			param.Tags = cloudflare.F(tags)
+		}
 		return dns.BatchPutMXRecordParam{
-			ID: cloudflare.F(id),
-			MXRecordParam: dns.MXRecordParam{
-				Name:     cloudflare.F(r.Name),
-				TTL:      cloudflare.F(r.TTL),
-				Type:     cloudflare.F(dns.MXRecordTypeMX),
-				Content:  cloudflare.F(r.Content),
-				Proxied:  cloudflare.F(r.Proxied),
-				Comment:  cloudflare.F(comment),
-				Tags:     cloudflare.F(tags),
-				Priority: cloudflare.F(r.Priority),
-			},
+			ID:            cloudflare.F(id),
+			MXRecordParam: param,
 		}, true
 	case dns.RecordResponseTypeNS:
+		param := dns.NSRecordParam{
+			Name:    cloudflare.F(r.Name),
+			TTL:     cloudflare.F(r.TTL),
+			Type:    cloudflare.F(dns.NSRecordTypeNS),
+			Content: cloudflare.F(r.Content),
+			Proxied: cloudflare.F(r.Proxied),
+		}
+		if comment != "" {
+			param.Comment = cloudflare.F(comment)
+		}
+		if tags != nil {
+			param.Tags = cloudflare.F(tags)
+		}
 		return dns.BatchPutNSRecordParam{
-			ID: cloudflare.F(id),
-			NSRecordParam: dns.NSRecordParam{
-				Name:    cloudflare.F(r.Name),
-				TTL:     cloudflare.F(r.TTL),
-				Type:    cloudflare.F(dns.NSRecordTypeNS),
-				Content: cloudflare.F(r.Content),
-				Proxied: cloudflare.F(r.Proxied),
-				Comment: cloudflare.F(comment),
-				Tags:    cloudflare.F(tags),
-			},
+			ID:            cloudflare.F(id),
+			NSRecordParam: param,
 		}, true
 	default:
 		// Record types that use structured Data fields (SRV, CAA, etc.) are not
