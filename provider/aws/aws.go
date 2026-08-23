@@ -946,11 +946,9 @@ func adjustGeoProximityLocationEndpoint(ep *endpoint.Endpoint) {
 // action=ChangeActionDelete returns a change for deletion of the record.
 func (p *AWSProvider) newChange(action route53types.ChangeAction, ep *endpoint.Endpoint) *Route53Change {
 	change := &Route53Change{
-		Change: route53types.Change{
-			Action: action,
-			ResourceRecordSet: &route53types.ResourceRecordSet{
-				Name: aws.String(ep.DNSName),
-			},
+		Action: action,
+		ResourceRecordSet: &route53types.ResourceRecordSet{
+			Name: aws.String(ep.DNSName),
 		},
 	}
 	change.ResourceRecordSet.Type = route53types.RRType(ep.RecordType)
@@ -1324,10 +1322,8 @@ func changesByZone(zones map[string]*profiledZone, changeSet Route53Changes) map
 				aliasTarget.HostedZoneId = aws.String(cleanZoneID(*z.zone.Id))
 				rrset.AliasTarget = &aliasTarget
 				c = &Route53Change{
-					Change: route53types.Change{
-						Action:            c.Action,
-						ResourceRecordSet: &rrset,
-					},
+					Action:            c.Action,
+					ResourceRecordSet: &rrset,
 				}
 			}
 			changes[*z.zone.Id] = append(changes[*z.zone.Id], c)
