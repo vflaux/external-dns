@@ -411,8 +411,7 @@ func (p *AWSProvider) zones(ctx context.Context) (map[string]*profiledZone, erro
 		for paginator.HasMorePages() {
 			resp, err := paginator.NextPage(ctx)
 			if err != nil {
-				var te *route53types.ThrottlingException
-				if errors.As(err, &te) {
+				if te, ok := errors.AsType[*route53types.ThrottlingException](err); ok {
 					log.Infof("Skipping AWS profile %q due to provider side throttling: %v", profile, te.ErrorMessage())
 					continue
 				}

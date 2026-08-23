@@ -122,7 +122,7 @@ func (r *rfc2136Stub) SendMessage(msg *dns.Msg) error {
 
 		line = strings.ReplaceAll(line, "\t", " ")
 		log.Info(line)
-		record := strings.Split(line, " ")[0]
+		record, _, _ := strings.Cut(line, " ")
 		if !strings.HasSuffix(record, zone) {
 			err := fmt.Errorf("Message contains updates outside of it's zone.  zone=%v record=%v", zone, record)
 			log.Error(err)
